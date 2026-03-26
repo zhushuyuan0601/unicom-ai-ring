@@ -20,7 +20,7 @@ interface StoryboardShot {
 
 // 视频创作状态
 interface VideoCreation {
-  step: 'input' | 'script' | 'storyboard' | 'generating' | 'preview' | 'final'
+  step: 'input' | 'script' | 'script-confirm' | 'storyboard' | 'generating' | 'preview' | 'final'
   input: string
   theme: string
   script: string
@@ -622,9 +622,11 @@ export default function XiaoyouPage({ onBack }: XiaoyouPageProps) {
   const [videoCreation, setVideoCreation] = useState<VideoCreation>({
     step: 'input',
     input: '',
+    theme: '',
     script: '',
     storyboard: [],
-    progress: 0
+    progress: 0,
+    currentShotIndex: 0
   })
 
   // 音乐创作状态
@@ -733,55 +735,33 @@ export default function XiaoyouPage({ onBack }: XiaoyouPageProps) {
     setVideoCreation({
       step: 'script',
       input: theme,
+      theme: theme,
       script: '',
       storyboard: [],
-      progress: 0
+      progress: 0,
+      currentShotIndex: 0
     })
 
-    // 模拟生成剧本
+    // 2秒后生成剧本并进入确认阶段
     setTimeout(() => {
-      const scripts: Record<string, string> = {
-        '新年祝福': `【新年祝福视频彩铃】
-
-开场：红红火火的背景，烟花绽放
-画面：舞狮跳跃，锣鼓喧天
-主角：您的人像出现在画面中央
-祝福语：恭祝新春快乐，万事如意
-结尾：您的姓名和企业Logo`,
-        '商务形象': `【商务形象视频彩铃】
-
-开场：简约大气的企业色调
-画面：城市天际线，科技元素
-主角：专业商务形象展示
-核心：展示您的业务领域
-结尾：联系方式和企业口号`,
-        '生日快乐': `【生日祝福视频彩铃】
-
-开场：温馨的烛光效果
-画面：生日蛋糕缓缓升起
-主角：寿星照片融入场景
-祝福语：祝您生日快乐，梦想成真
-结尾：温馨祝福语和署名`
-      }
-
+      const themeData = videoThemes[theme]
       setVideoCreation(prev => ({
         ...prev,
-        script: scripts[theme] || `【${theme}视频彩铃】\n\n根据您的需求，为您生成专属剧本...`
+        step: 'script-confirm',  // 新增：剧本确认阶段
+        script: themeData?.script || `【${theme}视频彩铃】\n\n根据您的需求，为您生成专属剧本...`
       }))
     }, 2000)
   }
 
-  const generateStoryboard = () => {
+  // 新增：确认剧本，进入分镜生成
+  const confirmScript = () => {
+    // 进入分镜生成
     setVideoCreation(prev => ({ ...prev, step: 'storyboard' }))
-
-    const shots = [
-      { shot: 1, description: '开场镜头 - 场景建立', duration: '2秒' },
-      { shot: 2, description: '主题呈现 - 核心内容', duration: '4秒' },
-      { shot: 3, description: '人物展示 - 个人形象', duration: '3秒' },
-      { shot: 4, description: '祝福表达 - 文字动画', duration: '3秒' },
-      { shot: 5, description: '结尾展示 - Logo和联系方式', duration: '3秒' }
-    ]
-
+    
+    // 生成分镜数据
+    const themeData = videoThemes[videoCreation.input]
+    const shots = themeData?.storyboard || []
+    
     setTimeout(() => {
       setVideoCreation(prev => ({
         ...prev,
@@ -950,7 +930,68 @@ export default function XiaoyouPage({ onBack }: XiaoyouPageProps) {
             </div>
           )}
 
-          {/* Step 3: 剧本确认 + 分镜 */}
+          {/* Step 3: 剧本确认 */}
+          {videoCreation.step === 'script-confirm' && videoCreation.script && (
+            <div className="fade-in">
+              <div style={{ 
+                background: 'linear-gradient(135deg, #1a1a2e, #2a2a4e)',
+                borderRadius: 12, 
+                padding: 16, 
+                marginBottom: 16 
+              }}>
+                <h4 style={{ color: 'white', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 20 }}>📝</span>
+                  AI生成的剧本
+                </h4>
+                <div style={{ 
+                  color: '#ccc', 
+                  fontSize: 14, 
+                  lineHeight: 1.8,
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'inherit'
+                }}>
+                  {videoCreation.script}
+                </div>
+              </div>
+
+              <div style={{ 
+                background: '#1a1a2e', 
+                borderRadius: 12, 
+                padding: 16,
+                marginBottom: 16 
+              }}>
+                <p style={{ color: '#888', fontSize: 13, marginBottom: 12 }}>💡 您可以修改剧本内容</p>
+                <textarea 
+                  value={videoCreation.script}
+                  onChange={(e) => setVideoCreation(prev => ({ ...prev, script: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    minHeight: 120,
+                    background: '#0a0a0a',
+                    border: '1px solid #333',
+                    borderRadius: 8,
+                    padding: 12,
+                    color: 'white',
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                  placeholder="修改剧本内容..."
+                />
+              </div>
+
+              <button 
+                onClick={confirmScript}
+                className="btn btn-primary"
+                style={{ width: '100%', background: '#e60012', padding: 16 }}
+              >
+                ✨ 确认生成分镜
+              </button>
+            </div>
+          )}
+
+          {/* Step 4: 分镜展示 */}
           {videoCreation.step === 'storyboard' && videoCreation.script && (
             <div className="fade-in">
               <div style={{ 
@@ -966,45 +1007,59 @@ export default function XiaoyouPage({ onBack }: XiaoyouPageProps) {
               </div>
 
               <h4 style={{ color: 'white', marginBottom: 12 }}>🎬 分镜脚本</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {videoCreation.storyboard.map((shot) => (
-                  <div key={shot.shot} style={{
-                    background: '#1a1a2e',
-                    borderRadius: 8,
-                    padding: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12
-                  }}>
-                    <div style={{ 
-                      width: 32, 
-                      height: 32, 
-                      background: '#e60012', 
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: 14,
-                      fontWeight: 600
-                    }}>
-                      {shot.shot}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ color: 'white', fontSize: 14 }}>{shot.description}</p>
-                      <p style={{ color: '#888', fontSize: 12 }}>{shot.duration}</p>
-                    </div>
+              
+              {videoCreation.storyboard.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 40 }}>
+                  <Loader2 size={32} className="pulse" style={{ color: '#e60012', marginBottom: 12 }} />
+                  <p style={{ color: '#888' }}>正在生成分镜...</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {videoCreation.storyboard.map((shot) => (
+                      <div key={shot.shot} style={{
+                        background: '#1a1a2e',
+                        borderRadius: 8,
+                        padding: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12
+                      }}>
+                        <div style={{ 
+                          width: 32, 
+                          height: 32, 
+                          background: '#e60012', 
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: 14,
+                          fontWeight: 600
+                        }}>
+                          {shot.shot}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ color: 'white', fontSize: 14, fontWeight: 500 }}>{shot.title}</p>
+                          <p style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>{shot.description}</p>
+                          <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                            <span style={{ color: '#888', fontSize: 12 }}>⏱ {shot.duration}</span>
+                            <span style={{ color: '#888', fontSize: 12 }}>✨ {shot.visualEffect}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              <button 
-                onClick={startVideoGeneration}
-                className="btn btn-primary"
-                style={{ width: '100%', marginTop: 24, background: '#e60012' }}
-              >
-                🎬 开始生成视频
-              </button>
+                  <button 
+                    onClick={startVideoGeneration}
+                    className="btn btn-primary"
+                    style={{ width: '100%', marginTop: 24, background: '#e60012', padding: 16 }}
+                  >
+                    🎬 开始生成视频
+                  </button>
+                </>
+              )}
             </div>
           )}
 
