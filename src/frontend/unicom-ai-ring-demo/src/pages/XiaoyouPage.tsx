@@ -646,6 +646,29 @@ export default function XiaoyouPage({ onBack }: XiaoyouPageProps) {
   const musicPlayTimerRef = useRef<NodeJS.Timeout | null>(null)
   const videoPlayTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+  // 音乐播放定时器效果
+  useEffect(() => {
+    if (musicCreation.isPlaying && musicCreation.step === 'preview' && musicCreation.currentTime < 15) {
+      musicPlayTimerRef.current = setInterval(() => {
+        setMusicCreation(prev => {
+          if (prev.currentTime >= 15) {
+            return { ...prev, isPlaying: false, currentTime: 0 }
+          }
+          return { ...prev, currentTime: prev.currentTime + 0.1 }
+        })
+      }, 100)
+    } else {
+      if (musicPlayTimerRef.current) {
+        clearInterval(musicPlayTimerRef.current)
+      }
+    }
+    return () => {
+      if (musicPlayTimerRef.current) {
+        clearInterval(musicPlayTimerRef.current)
+      }
+    }
+  }, [musicCreation.isPlaying, musicCreation.step])
+
   // 处理聊天
   const handleChat = async () => {
     if (!inputValue.trim()) return
@@ -1415,55 +1438,206 @@ export default function XiaoyouPage({ onBack }: XiaoyouPageProps) {
             </div>
           )}
 
-          {/* Step 5: 预览 */}
+          {/* Step 5: 预览 - 音乐播放界面 */}
           {musicCreation.step === 'preview' && (
             <div className="fade-in">
-              <div style={{ 
+              {/* 专辑封面和播放控制 */}
+              <div style={{
                 background: 'linear-gradient(135deg, #1a1a2e, #2a2a4e)',
-                borderRadius: 12, 
-                padding: 24, 
+                borderRadius: 16,
+                padding: 24,
                 marginBottom: 16,
                 textAlign: 'center'
               }}>
-                <div style={{ 
-                  width: 120, 
-                  height: 120, 
-                  margin: '0 auto 16px',
-                  background: 'linear-gradient(135deg, #e60012, #ff6b6b)',
+                {/* 旋转唱片动画 */}
+                <div style={{
+                  width: 140,
+                  height: 140,
+                  margin: '0 auto 20px',
+                  background: 'linear-gradient(135deg, #1a1a2e, #2a2a4e)',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 8px 32px rgba(230, 0, 18, 0.4)'
+                  boxShadow: '0 8px 32px rgba(230, 0, 18, 0.3)',
+                  border: '4px solid #333',
+                  animation: musicCreation.isPlaying ? 'rotate 3s linear infinite' : 'none',
+                  position: 'relative'
                 }}>
-                  <Play size={48} color="white" />
-                </div>
-                <h3 style={{ color: 'white', fontSize: 20, marginBottom: 8 }}>您的专属音乐彩铃</h3>
-                <p style={{ color: '#888', fontSize: 14 }}>时长：15秒</p>
-
-                {/* 波形动画 */}
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  gap: 4, 
-                  marginTop: 24,
-                  height: 40 
-                }}>
-                  {Array.from({ length: 20 }).map((_, i) => (
+                  <div style={{
+                    width: 50,
+                    height: 50,
+                    background: 'linear-gradient(135deg, #e60012, #ff6b6b)',
+                    borderRadius: '50%'
+                  }} />
+                  {/* 唱片纹理 */}
+                  {[1, 2, 3, 4].map((i) => (
                     <div key={i} style={{
-                      width: 4,
-                      background: '#e60012',
-                      borderRadius: 2,
-                      animation: `wave 1s ease-in-out infinite`,
-                      animationDelay: `${i * 0.05}s`,
-                      height: `${20 + Math.random() * 20}px`
+                      position: 'absolute',
+                      width: `${50 + i * 18}px`,
+                      height: `${50 + i * 18}px`,
+                      border: `2px solid rgba(255,255,255,0.1)`,
+                      borderRadius: '50%'
                     }} />
                   ))}
                 </div>
+                <h3 style={{ color: 'white', fontSize: 20, marginBottom: 8 }}>
+                  {musicCreation.styleName || '您的专属音乐彩铃'}
+                </h3>
+                <p style={{ color: '#888', fontSize: 14 }}>时长：15 秒</p>
+
+                {/* 播放进度条 */}
+                <div style={{
+                  marginTop: 24,
+                  marginBottom: 16
+                }}>
+                  <div style={{
+                    height: 6,
+                    background: '#333',
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    cursor: 'pointer'
+                  }}>
+                    <div style={{
+                      width: `${(musicCreation.currentTime / 15) * 100}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #e60012, #ff4d4d)',
+                      transition: 'width 0.1s linear'
+                    }} />
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: '#666'
+                  }}>
+                    <span>0:{String(Math.floor(musicCreation.currentTime)).padStart(2, '0')}</span>
+                    <span>0:15</span>
+                  </div>
+                </div>
+
+                {/* 播放控制按钮 */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 24,
+                  marginTop: 16
+                }}>
+                  <button
+                    onClick={() => setMusicCreation(prev => ({ ...prev, currentTime: 0, isPlaying: true }))}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      background: 'rgba(255,255,255,0.1)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: 'white'
+                    }}
+                  >
+                    <RefreshCw size={20} />
+                  </button>
+                  <button
+                    onClick={() => setMusicCreation(prev => ({ ...prev, isPlaying: !prev.isPlaying }))}
+                    style={{
+                      width: 64,
+                      height: 64,
+                      background: 'linear-gradient(135deg, #e60012, #ff6b6b)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 8px 24px rgba(230, 0, 18, 0.4)'
+                    }}
+                  >
+                    {musicCreation.isPlaying ? (
+                      <Pause size={32} color="white" />
+                    ) : (
+                      <Play size={32} color="white" style={{ marginLeft: 4 }} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setMusicCreation(prev => ({ ...prev, currentTime: 15, isPlaying: false }))}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      background: 'rgba(255,255,255,0.1)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: 'white'
+                    }}
+                  >
+                    <RefreshCw size={20} style={{ transform: 'rotate(180deg)' }} />
+                  </button>
+                </div>
+
+                {/* 动态波形动画 */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 3,
+                  marginTop: 24,
+                  height: 50,
+                  alignItems: 'flex-end'
+                }}>
+                  {Array.from({ length: 24 }).map((_, i) => {
+                    const baseHeight = 10 + Math.sin(i * 0.8) * 8
+                    const activeHeight = 15 + Math.sin(i * 0.8 + musicCreation.currentTime * 2) * 20 + Math.random() * 15
+                    return (
+                      <div key={i} style={{
+                        width: 4,
+                        background: 'linear-gradient(to top, #e60012, #ff6b6b)',
+                        borderRadius: 2,
+                        height: musicCreation.isPlaying ? `${activeHeight}px` : `${baseHeight}px`,
+                        transition: 'height 0.15s ease',
+                        opacity: musicCreation.isPlaying ? 1 : 0.5
+                      }} />
+                    )
+                  })}
+                </div>
+
+                {/* 歌词展示 */}
+                {musicCreation.lyrics && (
+                  <div style={{
+                    marginTop: 20,
+                    padding: 16,
+                    background: 'rgba(0,0,0,0.25)',
+                    borderRadius: 12,
+                    maxHeight: 120,
+                    overflowY: 'auto'
+                  }}>
+                    <pre style={{
+                      color: '#aaa',
+                      fontSize: 12,
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'inherit',
+                      lineHeight: 1.6,
+                      margin: 0
+                    }}>
+                      {musicCreation.lyrics}
+                    </pre>
+                  </div>
+                )}
               </div>
 
+              {/* 操作按钮 */}
               <div style={{ display: 'flex', gap: 12 }}>
-                <button className="btn btn-primary" style={{ flex: 1, background: '#e60012' }}>
+                <button
+                  onClick={() => alert('已设为彩铃！')}
+                  className="btn btn-primary"
+                  style={{ flex: 1, background: '#e60012' }}
+                >
                   <Check size={20} />
                   设为彩铃
                 </button>
@@ -1472,6 +1646,13 @@ export default function XiaoyouPage({ onBack }: XiaoyouPageProps) {
                   下载
                 </button>
               </div>
+
+              <style>{\`
+                @keyframes rotate {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+              \`}</style>
             </div>
           )}
         </div>
@@ -1608,9 +1789,9 @@ export default function XiaoyouPage({ onBack }: XiaoyouPageProps) {
       </div>
 
       {/* 快捷功能入口 */}
-      <div style={{ 
-        padding: 12, 
-        background: 'white',
+      <div style={{
+        padding: 12,
+        background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
         display: 'flex',
         gap: 8
       }}>
@@ -1655,11 +1836,11 @@ export default function XiaoyouPage({ onBack }: XiaoyouPageProps) {
       </div>
 
       {/* 消息区域 */}
-      <div style={{ 
-        flex: 1, 
+      <div style={{
+        flex: 1,
         overflowY: 'auto',
         padding: 16,
-        background: '#f5f5f5'
+        background: '#0a0a0a'
       }}>
         {messages.map((msg, index) => (
           <div 
